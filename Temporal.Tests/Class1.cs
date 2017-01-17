@@ -55,5 +55,45 @@ namespace Temporal.Tests
 
             temporalService.Delete(topic);
         }
+
+        [Fact]
+        public void MultipleMessagesAreReceived() {
+            
+            ITemporalService temporalService = new SimpleTemporalService();
+            string topic = Guid.NewGuid().ToString();
+            temporalService.Create(topic);
+
+            string subscription = temporalService.Subscribe(topic);
+
+            temporalService.Publish(topic, "some stuff");
+            temporalService.Publish(topic, "some other stuff");
+
+            string[] receivedEvents = temporalService.Consume(topic, subscription).Take(2).ToArray();
+            
+            Assert.Equal("some stuff", receivedEvents[0]);
+            Assert.Equal("some other stuff", receivedEvents[1]);
+
+            temporalService.Delete(topic);
+        }
+
+        [Fact]
+        public void PreviouslyPublishedMessagesAreReceivedByNewSubs() {
+            
+            ITemporalService temporalService = new SimpleTemporalService();
+            string topic = Guid.NewGuid().ToString();
+            temporalService.Create(topic);
+
+            temporalService.Publish(topic, "some stuff");
+            temporalService.Publish(topic, "some other stuff");
+
+            string subscription = temporalService.Subscribe(topic);
+
+            string[] receivedEvents = temporalService.Consume(topic, subscription).Take(2).ToArray();
+            
+            Assert.Equal("some stuff", receivedEvents[0]);
+            Assert.Equal("some other stuff", receivedEvents[1]);
+
+            temporalService.Delete(topic);
+        }
     }
 }
